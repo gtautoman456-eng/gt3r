@@ -1,1 +1,42 @@
+name: Build iOS IPA (unsigned, for Sideloadly)
 
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Release tag or branch to build"
+        default: "v0.6.6"
+        required: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: matt-pulsipher/GT3-revisited
+          ref: ${{ inputs.ref }}
+
+      - name: Configure
+        run: cmake -S . -B build-ios -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0
+
+      - name: Build app (unsigned)
+        run: >
+          cmake --build build-ios --config Release --target gt3r -- -quiet
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Package as .ipa
+        run: |
+          APP=$(find build-ios -type d -name "gt3r.app" -path "*iphoneos*" | head -1)
+          echo "Found: $APP"
+          test -n "$APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          rm -rf Payload/gt3r.app/_CodeSignature
+          zip -qry gt3r-ios-unsigned.ipa Payload
+          ls -lh gt3r-ios-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gt3r-ios-unsigned-${{ inputs.ref }}
+          path: gt3r-ios-unsigned.ipa
