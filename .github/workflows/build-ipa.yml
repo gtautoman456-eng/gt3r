@@ -1,6 +1,9 @@
 name: Build iOS IPA (unsigned, for Sideloadly)
 
 on:
+  push:
+    paths:
+      - ".github/workflows/build-ipa.yml"
   workflow_dispatch:
     inputs:
       ref:
@@ -15,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: matt-pulsipher/GT3-revisited
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || 'v0.6.6' }}
 
       - name: Configure
         run: cmake -S . -B build-ios -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0
@@ -38,5 +41,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gt3r-ios-unsigned-${{ inputs.ref }}
+          name: gt3r-ios-unsigned-${{ inputs.ref || 'v0.6.6' }}
           path: gt3r-ios-unsigned.ipa
